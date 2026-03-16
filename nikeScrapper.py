@@ -7,13 +7,8 @@ import time
 import random
 import csv
 import re
-from supabase import create_client
+import requests
 import datetime
-
-SUPABASE_URL = "https://vmtokeayizjbmvdxbcof.supabase.co"
-SUPABASE_KEY = "sb_publishable_j0gSHLWJIECGgCJXM-7i3Q_MF8WGHja"
-
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 options = webdriver.ChromeOptions()
 options.add_argument("--start-maximized")
@@ -52,14 +47,14 @@ products = []
 products = driver.find_elements(By.CLASS_NAME, "css-1mbp38s")
 print(f"{len(products)} items found")
 
-def php_to_inr(price_text):
-    numeric = price_text.replace("₱", "").replace(",", "").strip()
-    try:
-        php_value = float(numeric)
-        inr_value = round(php_value * 1.56, 2)
-        return inr_value
-    except:
-        return "N/A"
+# def php_to_inr(price_text):
+#     numeric = price_text.replace("₱", "").replace(",", "").strip()
+#     try:
+#         php_value = float(numeric)
+#         inr_value = round(php_value * 1.56, 2)
+#         return inr_value
+#     except:
+#         return "N/A"
 
 all_products = []
 
@@ -68,27 +63,21 @@ for product in products:
         Name = product.find_element(By.CLASS_NAME, "css-12xgt1").text
         URL = product.find_element(By.CSS_SELECTOR, "a.css-1o8jw7q").get_attribute("href")
         Image_URL = product.find_element(By.TAG_NAME, "img").get_attribute("src")
-        # price_wrapper = product.find_element(By.CSS_SELECTOR, ".product-price__wrapper")
-        # aria = price_wrapper.get_attribute("aria-label")
-        # curr = re.search(r"current price ([₱\d,]+)", aria)
-        # orig = re.search(r"original price ([₱\d,]+)", aria)
-        # if curr:
-        #     current_price = curr.group(1)
-        # if orig:
-        #     original_price = orig.group(1)
+  
+        disount = product.find_elements(By.CLASS_NAME, "css-6k8kzr")
+        if disount:
+            Discount_Price = disount[0].text
+        else:
+            Discount_Price = "NA"    
 
-        # Discount_Price = php_to_inr(current_price)
-        # Original_Price = php_to_inr(original_price)
-        Discount_Price =  product.find_element(By.CLASS_NAME, ".css-6k8kzr").text
-        Original_Price =  product.find_element(By.CLASS_NAME, ".css-3jxyrx").text
+        Original_Price =  product.find_element(By.TAG_NAME, "h3").text
 
         all_products.append({
             "URL": URL, 
             "Image_URL": Image_URL, 
             "Name": Name, 
             "Original_Price": Original_Price, 
-            "Discount_Price": Discount_Price, 
-            "Description": "N/A"
+            "Discount_Price": Discount_Price
             })
         print(all_products)
         break
@@ -111,55 +100,23 @@ for product in products:
 
 driver.quit()
 
-with open("nike_shoes.csv", "w", newline="", encoding="utf-8") as f:
-    writer = csv.writer(f)
-    writer.writerow([
-        "URL", 
-        "Image_URL", 
-        "Name", 
-        "Original_Price(INR)", 
-        "Discount_Price(INR)", 
-    ])
+# with open("nike_shoes.csv", "w", newline="", encoding="utf-8") as f:
+#     writer = csv.writer(f)
+#     writer.writerow([
+#         "URL", 
+#         "Image_URL", 
+#         "Name", 
+#         "Original_Price(INR)", 
+#         "Discount_Price(INR)", 
+#     ])
 
-    for p in all_products:
-        writer.writerow([
-            p["URL"], 
-            p["Image_URL"], 
-            p["Name"], 
-            p["Original_Price"], 
-            p["Discount_Price"], 
-        ])
-
-# def upsert_product(product):
-#     response = supabase.table("products").upsert(
-#         {
-#         "product_url": product["URL"],
-#         "product_name": product["Name"],
-#         "product_image_url": product["Image_URL"]
-#         },
-#         on_conflict="product_url"
-#     ).execute()
-
-#     if not response.data:
-#         raise Exception("Product upsert failed")
-
-#     return response.data[0]["id"]
-
-# def insert_price_history(product_id, product):
-#     response = supabase.table("price_history").insert(
-#         {
-#             "product_id": product_id,
-#             "original_price_inr": product["Original_Price"],
-#             "discount_price_inr": product["Discount_Price"],
-#             "discount_percent": product["Discount_Percentage"],
-#             "scraped_at": datetime.datetime.now(datetime.UTC).isoformat()
-#         }
-#     ).execute()
-
-#     return response
-
-# for product in all_products:
-#     product_id = upsert_product(product)
-#     insert_price_history(product_id, product)
+#     for p in all_products:
+#         writer.writerow([
+#             p["URL"], 
+#             p["Image_URL"], 
+#             p["Name"], 
+#             p["Original_Price"], 
+#             p["Discount_Price"], 
+#         ])
 
 print("Data saved to ecommerce_product_sample.csv")
